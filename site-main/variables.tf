@@ -15,7 +15,6 @@ variable bucket_name {
   description = "The name of the S3 bucket to create."
 }
 
-variable duplicate-content-penalty-secret {}
 variable deployer {}
 variable acm-certificate-arn {}
 
@@ -25,6 +24,10 @@ variable routing_rules {
 
 variable not-found-response-path {
   default = "/404.html"
+}
+
+variable not-authorized-response-path {
+  default = "/403.html"
 }
 
 variable "tags" {

@@ -32,7 +32,7 @@ data "template_file" "bucket_policy" {
 
   vars {
     bucket = "${var.bucket_name}"
-    secret = "${var.duplicate-content-penalty-secret}"
+    iam_arn= "${aws_cloudfront_origin_access_identity.orig_access_ident.iam_arn}"
   }
 }
 
@@ -84,14 +84,21 @@ resource "aws_iam_policy_attachment" "site-deployer-attach-user-policy" {
 ################################################################################################################
 ## Create a Cloudfront distribution for the static website
 ################################################################################################################
+resource "aws_cloudfront_origin_access_identity" "orig_access_ident" {
+  comment = "CloudFront Origin Access Identity to access S3 Bucket ${aws_s3_bucket.website_bucket.bucket_domain_name}"
+}
 resource "aws_cloudfront_distribution" "website_cdn" {
   enabled      = true
   price_class  = "${var.price_class}"
   http_version = "http2"
 
   "origin" {
-    origin_id   = "origin-bucket-${aws_s3_bucket.website_bucket.id}"
+    origin_id   = "S3-origin-bucket-${aws_s3_bucket.website_bucket.id}"
     domain_name = "${aws_s3_bucket.website_bucket.website_endpoint}"
+
+    s3_origin_config {
+      origin_access_identity = "${aws_cloudfront_origin_access_identity.orig_access_ident.cloudfront_access_identity_path}"
+    }
 
     custom_origin_config {
       origin_protocol_policy = "http-only"
@@ -99,20 +106,22 @@ resource "aws_cloudfront_distribution" "website_cdn" {
       https_port             = "443"
       origin_ssl_protocols   = ["TLSv1"]
     }
-
-    custom_header {
-      name  = "User-Agent"
-      value = "${var.duplicate-content-penalty-secret}"
-    }
   }
 
   default_root_object = "index.html"
 
   custom_error_response {
-    error_code            = "404"
+    error_code = "404"
+    error_caching_min_ttl = "360"
+    response_code = "200"
+    response_page_path = "${var.not-found-response-path}"
+  }
+
+  custom_error_response {
+    error_code            = "403"
     error_caching_min_ttl = "360"
     response_code         = "200"
-    response_page_path    = "${var.not-found-response-path}"
+    response_page_path    = "${var.not-authorized-response-path}"
   }
 
   "default_cache_behavior" {
