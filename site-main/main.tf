@@ -85,7 +85,7 @@ resource "aws_iam_policy_attachment" "site-deployer-attach-user-policy" {
 ## Create a Cloudfront distribution for the static website
 ################################################################################################################
 resource "aws_cloudfront_origin_access_identity" "orig_access_ident" {
-  comment = "CloudFront Origin Access Identity to access S3 Bucket ${aws_s3_bucket.website_bucket.bucket_domain_name}"
+  comment = "CloudFront Origin Access Identity to access S3 Bucket ${var.bucket_name}"
 }
 resource "aws_cloudfront_distribution" "website_cdn" {
   enabled      = true
