@@ -41,9 +41,43 @@ variable "trusted_signers" {
   default = []
 }
 
+variable "forwarded-headers" {
+  type = "list"
+  default = ["Origin"]
+}
+
 variable "forward-query-string" {
   description = "Forward the query string to the origin"
   default     = false
+}
+
+variable "cors-allowed-methods" {
+  type = "list"
+  default = ["GET", "HEAD"]
+  description = "Specifies which methods are allowed. Can be GET, PUT, POST, DELETE or HEAD."
+}
+
+variable "cors-allowed-origins" {
+  type = "list"
+  default = ["*"]
+  description = "Specifies which origins are allowed."
+}
+
+variable "cors-allowed-headers" {
+  type = "list"
+  default = []
+  description = "Specifies which headers are allowed."
+}
+
+variable "cors-expose-headers" {
+  type = "list"
+  default = []
+  description = "Specifies expose header in the response."
+}
+
+variable "cors-max-cache-age-seconds" {
+  default = "60"
+  description = "Specifies time in seconds that browser can cache the response for a preflight request."
 }
 
 variable "price_class" {

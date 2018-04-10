@@ -41,6 +41,14 @@ resource "aws_s3_bucket" "website_bucket" {
   bucket   = "${var.bucket_name}"
   policy   = "${data.template_file.bucket_policy.rendered}"
 
+  cors_rule {
+    allowed_methods = ["${var.cors-allowed-methods}"]
+    allowed_origins = ["${var.cors-allowed-origins}"]
+    allowed_headers = ["${var.cors-allowed-headers}"]
+    expose_headers  = ["${var.cors-expose-headers}"]
+    max_age_seconds = "${var.cors-max-cache-age-seconds}"
+  }
+
   website {
     index_document = "index.html"
     error_document = "404.html"
@@ -123,6 +131,7 @@ resource "aws_cloudfront_distribution" "website_cdn" {
 
     "forwarded_values" {
       query_string = "${var.forward-query-string}"
+      headers = ["${var.forwarded-headers}"]
 
       cookies {
         forward = "none"
