@@ -31,8 +31,8 @@ data "template_file" "bucket_policy" {
   template = "${file("${path.module}/website_bucket_policy.json")}"
 
   vars {
-    bucket = "${var.bucket_name}"
-    iam_arn= "${aws_cloudfront_origin_access_identity.orig_access_ident.iam_arn}"
+    bucket  = "${var.bucket_name}"
+    iam_arn = "${aws_cloudfront_origin_access_identity.orig_access_ident.iam_arn}"
   }
 }
 
@@ -95,6 +95,7 @@ resource "aws_iam_policy_attachment" "site-deployer-attach-user-policy" {
 resource "aws_cloudfront_origin_access_identity" "orig_access_ident" {
   comment = "CloudFront Origin Access Identity to access S3 Bucket ${var.bucket_name}"
 }
+
 resource "aws_cloudfront_distribution" "website_cdn" {
   enabled      = true
   price_class  = "${var.price_class}"
@@ -112,10 +113,10 @@ resource "aws_cloudfront_distribution" "website_cdn" {
   default_root_object = "index.html"
 
   custom_error_response {
-    error_code = "404"
+    error_code            = "404"
     error_caching_min_ttl = "360"
-    response_code = "200"
-    response_page_path = "${var.not-found-response-path}"
+    response_code         = "200"
+    response_page_path    = "${var.not-found-response-path}"
   }
 
   custom_error_response {
@@ -131,7 +132,7 @@ resource "aws_cloudfront_distribution" "website_cdn" {
 
     "forwarded_values" {
       query_string = "${var.forward-query-string}"
-      headers = ["${var.forwarded-headers}"]
+      headers      = ["${var.forwarded-headers}"]
 
       cookies {
         forward = "none"
@@ -141,8 +142,8 @@ resource "aws_cloudfront_distribution" "website_cdn" {
     trusted_signers = ["${var.trusted_signers}"]
 
     min_ttl          = "0"
-    default_ttl      = "300"                                              //3600
-    max_ttl          = "1200"                                             //86400
+    default_ttl      = "300"                                                 //3600
+    max_ttl          = "1200"                                                //86400
     target_origin_id = "S3-origin-bucket-${aws_s3_bucket.website_bucket.id}"
 
     // This redirects any HTTP request to HTTPS. Security first!
