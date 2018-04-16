@@ -17,14 +17,6 @@
 ################################################################################################################
 
 ################################################################################################################
-## Configure the AWS provider for the specific region
-################################################################################################################
-provider "aws" {
-  alias  = "${var.region}"
-  region = "${var.region}"
-}
-
-################################################################################################################
 ## Configure the bucket and static website hosting
 ################################################################################################################
 data "template_file" "bucket_policy" {
@@ -32,13 +24,12 @@ data "template_file" "bucket_policy" {
 
   vars {
     bucket = "site.${replace("${replace("${var.domain}",".","-")}","*","star")}"
-    secret = "${var.duplicate-content-penalty-secret}"
+    iam_arn = "${aws_cloudfront_origin_access_identity.orig_access_ident.iam_arn}"
   }
 }
 
 resource "aws_s3_bucket" "website_bucket" {
-  provider = "aws.${var.region}"
-  bucket   = "site.${replace("${replace("${var.domain}",".","-")}","*","star")}"
+  bucket   = "${var.domain}"
   policy   = "${data.template_file.bucket_policy.rendered}"
 
   website {
@@ -54,64 +45,27 @@ resource "aws_s3_bucket" "website_bucket" {
 }
 
 ################################################################################################################
-## Configure the credentials and access to the bucket for a deployment user
+## Create a Cloudfront distribution for the redirect website
 ################################################################################################################
-data "template_file" "deployer_role_policy_file" {
-  template = "${file("${path.module}/deployer_role_policy.json")}"
-
-  vars {
-    bucket = "site.${replace("${replace("${var.domain}",".","-")}","*","star")}"
-  }
+resource "aws_cloudfront_origin_access_identity" "orig_access_ident" {
+  comment = "S3 ${var.domain} CloudFront Origin Access Identity"
 }
 
-resource "aws_iam_policy" "site_deployer_policy" {
-  provider    = "aws.${var.region}"
-  name        = "site.${replace("${replace("${var.domain}",".","-")}","*","star")}.deployer"
-  path        = "/"
-  description = "Policy allowing to publish a new version of the website to the S3 bucket"
-  policy      = "${data.template_file.deployer_role_policy_file.rendered}"
-}
-
-resource "aws_iam_policy_attachment" "staging-site-deployer-attach-user-policy" {
-  provider   = "aws.${var.region}"
-  name       = "site.${replace("${replace("${var.domain}",".","-")}","*","star")}-deployer-policy-attachment"
-  users      = ["${var.deployer}"]
-  policy_arn = "${aws_iam_policy.site_deployer_policy.arn}"
-}
-
-################################################################################################################
-## Create a Cloudfront distribution for the static website
-################################################################################################################
 resource "aws_cloudfront_distribution" "website_cdn" {
   enabled      = true
   price_class  = "${var.price_class}"
   http_version = "http2"
 
   "origin" {
-    origin_id   = "origin-bucket-${aws_s3_bucket.website_bucket.id}"
-    domain_name = "${aws_s3_bucket.website_bucket.website_endpoint}"
+    origin_id   = "S3-origin-${aws_s3_bucket.website_bucket.id}"
+    domain_name = "${aws_s3_bucket.website_bucket.bucket_domain_name}"
 
-    custom_origin_config {
-      origin_protocol_policy = "http-only"
-      http_port              = "80"
-      https_port             = "443"
-      origin_ssl_protocols   = ["TLSv1"]
-    }
-
-    custom_header {
-      name  = "User-Agent"
-      value = "${var.duplicate-content-penalty-secret}"
+    s3_origin_config {
+      origin_access_identity = "${aws_cloudfront_origin_access_identity.orig_access_ident.cloudfront_access_identity_path}"
     }
   }
 
   default_root_object = "index.html"
-
-  custom_error_response {
-    error_code            = "404"
-    error_caching_min_ttl = "360"
-    response_code         = "200"
-    response_page_path    = "/404.html"
-  }
 
   "default_cache_behavior" {
     allowed_methods = ["GET", "HEAD", "DELETE", "OPTIONS", "PATCH", "POST", "PUT"]
@@ -128,7 +82,7 @@ resource "aws_cloudfront_distribution" "website_cdn" {
     min_ttl          = "0"
     default_ttl      = "300"                                              //3600
     max_ttl          = "1200"                                             //86400
-    target_origin_id = "origin-bucket-${aws_s3_bucket.website_bucket.id}"
+    target_origin_id = "S3-origin-${aws_s3_bucket.website_bucket.id}"
 
     // This redirects any HTTP request to HTTPS. Security first!
     viewer_protocol_policy = "redirect-to-https"

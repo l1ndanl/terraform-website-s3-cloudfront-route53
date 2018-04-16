@@ -82,7 +82,7 @@ resource "aws_iam_policy_attachment" "site-deployer-attach-user-policy" {
 ## Create a Cloudfront distribution for the static website
 ################################################################################################################
 resource "aws_cloudfront_origin_access_identity" "orig_access_ident" {
-  comment = "CloudFront Origin Access Identity to access S3 Bucket ${var.bucket_name}"
+  comment = "S3 ${var.bucket_name} CloudFront Origin Access Identity"
 }
 
 resource "aws_cloudfront_distribution" "website_cdn" {
@@ -91,7 +91,7 @@ resource "aws_cloudfront_distribution" "website_cdn" {
   http_version = "http2"
 
   "origin" {
-    origin_id   = "S3-origin-bucket-${aws_s3_bucket.website_bucket.id}"
+    origin_id   = "S3-origin-${aws_s3_bucket.website_bucket.id}"
     domain_name = "${aws_s3_bucket.website_bucket.bucket_domain_name}"
 
     s3_origin_config {
@@ -133,7 +133,7 @@ resource "aws_cloudfront_distribution" "website_cdn" {
     min_ttl          = "0"
     default_ttl      = "300"                                                 //3600
     max_ttl          = "1200"                                                //86400
-    target_origin_id = "S3-origin-bucket-${aws_s3_bucket.website_bucket.id}"
+    target_origin_id = "S3-origin-${aws_s3_bucket.website_bucket.id}"
 
     // This redirects any HTTP request to HTTPS. Security first!
     viewer_protocol_policy = "redirect-to-https"

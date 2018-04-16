@@ -11,8 +11,6 @@ variable environment {
 
 variable domain {}
 variable target {}
-variable duplicate-content-penalty-secret {}
-variable deployer {}
 variable acm-certificate-arn {}
 
 variable "tags" {
