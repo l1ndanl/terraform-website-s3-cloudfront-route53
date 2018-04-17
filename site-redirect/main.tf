@@ -19,18 +19,18 @@
 ################################################################################################################
 ## Configure the bucket and static website hosting
 ################################################################################################################
-data "template_file" "bucket_policy" {
+data "template_file" "redirect_bucket_policy" {
   template = "${file("${path.module}/website_redirect_bucket_policy.json")}"
 
   vars {
-    bucket = "site.${replace("${replace("${var.domain}",".","-")}","*","star")}"
+    bucket = "${var.domain}"
     iam_arn = "${aws_cloudfront_origin_access_identity.orig_access_ident.iam_arn}"
   }
 }
 
-resource "aws_s3_bucket" "website_bucket" {
+resource "aws_s3_bucket" "redirect_bucket" {
   bucket   = "${var.domain}"
-  policy   = "${data.template_file.bucket_policy.rendered}"
+  policy   = "${data.template_file.redirect_bucket_policy.rendered}"
 
   website {
     redirect_all_requests_to = "https://${var.target}"
@@ -51,14 +51,14 @@ resource "aws_cloudfront_origin_access_identity" "orig_access_ident" {
   comment = "S3 ${var.domain} CloudFront Origin Access Identity"
 }
 
-resource "aws_cloudfront_distribution" "website_cdn" {
+resource "aws_cloudfront_distribution" "redirect_cdn" {
   enabled      = true
   price_class  = "${var.price_class}"
   http_version = "http2"
 
   "origin" {
-    origin_id   = "S3-origin-${aws_s3_bucket.website_bucket.id}"
-    domain_name = "${aws_s3_bucket.website_bucket.bucket_domain_name}"
+    origin_id   = "S3-origin-${aws_s3_bucket.redirect_bucket.id}"
+    domain_name = "${aws_s3_bucket.redirect_bucket.bucket_domain_name}"
 
     s3_origin_config {
       origin_access_identity = "${aws_cloudfront_origin_access_identity.orig_access_ident.cloudfront_access_identity_path}"
@@ -82,7 +82,7 @@ resource "aws_cloudfront_distribution" "website_cdn" {
     min_ttl          = "0"
     default_ttl      = "300"                                              //3600
     max_ttl          = "1200"                                             //86400
-    target_origin_id = "S3-origin-${aws_s3_bucket.website_bucket.id}"
+    target_origin_id = "S3-origin-${aws_s3_bucket.redirect_bucket.id}"
 
     // This redirects any HTTP request to HTTPS. Security first!
     viewer_protocol_policy = "redirect-to-https"
