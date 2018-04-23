@@ -29,8 +29,8 @@ data "template_file" "bucket_policy" {
 }
 
 resource "aws_s3_bucket" "website_bucket" {
-  bucket   = "${var.bucket_name}"
-  policy   = "${data.template_file.bucket_policy.rendered}"
+  bucket = "${var.bucket_name}"
+  policy = "${data.template_file.bucket_policy.rendered}"
 
   cors_rule {
     allowed_methods = ["${var.cors-allowed-methods}"]
@@ -73,6 +73,7 @@ resource "aws_iam_policy" "site_deployer_policy" {
 }
 
 resource "aws_iam_user_policy_attachment" "site-deployer-attach-user-policy" {
+  count      = "${var.deployer == "" ? 0 : 1}"
   user       = "${var.deployer}"
   policy_arn = "${aws_iam_policy.site_deployer_policy.arn}"
 }
@@ -130,8 +131,8 @@ resource "aws_cloudfront_distribution" "website_cdn" {
     trusted_signers = ["${var.trusted_signers}"]
 
     min_ttl          = "0"
-    default_ttl      = "300"                                                 //3600
-    max_ttl          = "1200"                                                //86400
+    default_ttl      = "300"                                          //3600
+    max_ttl          = "1200"                                         //86400
     target_origin_id = "S3-origin-${aws_s3_bucket.website_bucket.id}"
 
     // This redirects any HTTP request to HTTPS. Security first!

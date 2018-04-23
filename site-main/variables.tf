@@ -15,7 +15,11 @@ variable bucket_name {
   description = "The name of the S3 bucket to create."
 }
 
-variable deployer {}
+variable deployer {
+  description = "Name of user allowed to deploy to the bucket; optional"
+  default     = ""
+}
+
 variable acm-certificate-arn {}
 
 variable routing_rules {
