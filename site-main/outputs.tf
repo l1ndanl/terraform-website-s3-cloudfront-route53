@@ -22,3 +22,7 @@ output "website_bucket_id" {
 output "website_bucket_arn" {
   value = "${aws_s3_bucket.website_bucket.arn}"
 }
+
+output "bucket_access_policy_arn" {
+  value = "${aws_iam_policy.site_deployer_policy.arn}"
+}
